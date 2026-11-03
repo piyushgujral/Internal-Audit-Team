@@ -14,8 +14,9 @@
       }
     },
     "clients": {
-      ".read": "auth != null && root.child('users').child(auth.uid).child('active').val() === true",
+      ".read": "auth != null && root.child('users').child(auth.uid).child('active').val() === true && root.child('users').child(auth.uid).child('role').val() in ['Admin', 'Manager']",
       "$clientId": {
+        ".read": "auth != null && root.child('users').child(auth.uid).child('active').val() === true && (root.child('users').child(auth.uid).child('role').val() in ['Admin', 'Manager'] || root.child('users').child(auth.uid).child('clientAccess').child($clientId).val() === true)",
         ".write": "auth != null && (auth.uid === 'REPLACE_WITH_ADMIN_UID' || root.child('users').child(auth.uid).child('role').val() in ['Admin', 'Manager'] && root.child('users').child(auth.uid).child('active').val() === true)",
         ".validate": "newData.hasChildren(['name', 'status', 'createdBy'])",
         "name": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 160" },
@@ -23,17 +24,21 @@
       }
     },
     "engagements": {
-      ".read": "auth != null && root.child('users').child(auth.uid).child('active').val() === true",
+      ".read": "auth != null && root.child('users').child(auth.uid).child('active').val() === true && (root.child('users').child(auth.uid).child('role').val() in ['Admin', 'Manager'] || query.orderByChild === 'clientId' && query.equalTo != null && root.child('users').child(auth.uid).child('clientAccess').child(query.equalTo).val() === true)",
+      ".indexOn": ["clientId"],
       "$engagementId": {
+        ".read": "auth != null && root.child('users').child(auth.uid).child('active').val() === true && (root.child('users').child(auth.uid).child('role').val() in ['Admin', 'Manager'] || root.child('users').child(auth.uid).child('clientAccess').child(data.child('clientId').val()).val() === true)",
         ".write": "auth != null && (auth.uid === 'REPLACE_WITH_ADMIN_UID' || root.child('users').child(auth.uid).child('role').val() in ['Admin', 'Manager'] && root.child('users').child(auth.uid).child('active').val() === true)",
         ".validate": "newData.hasChildren(['clientId', 'name', 'status', 'createdBy']) && root.child('clients').child(newData.child('clientId').val()).exists()"
       }
     },
     "tasks": {
-      ".read": "auth != null && root.child('users').child(auth.uid).child('active').val() === true",
+      ".read": "auth != null && root.child('users').child(auth.uid).child('active').val() === true && (root.child('users').child(auth.uid).child('role').val() in ['Admin', 'Manager'] || query.orderByChild === 'clientId' && query.equalTo != null && root.child('users').child(auth.uid).child('clientAccess').child(query.equalTo).val() === true)",
+      ".indexOn": ["clientId"],
       "$taskId": {
-        ".write": "auth != null && root.child('users').child(auth.uid).child('active').val() === true && (auth.uid === 'REPLACE_WITH_ADMIN_UID' || root.child('users').child(auth.uid).child('role').val() in ['Admin', 'Manager'] || root.child('users').child(auth.uid).child('role').val() in ['Senior', 'Auditor'] && data.exists() && data.child('assignedTo').val() === auth.uid)",
-        ".validate": "newData.hasChildren(['clientId', 'engagementId', 'title', 'status', 'assignedTo', 'createdBy']) && root.child('clients').child(newData.child('clientId').val()).exists() && root.child('engagements').child(newData.child('engagementId').val()).child('clientId').val() === newData.child('clientId').val() && newData.child('status').val() in ['Pending', 'In Progress', 'Under Review', 'Completed', 'On Hold'] && (root.child('users').child(auth.uid).child('role').val() in ['Admin', 'Manager'] || auth.uid === 'REPLACE_WITH_ADMIN_UID' || root.child('users').child(auth.uid).child('role').val() in ['Senior', 'Auditor'] && data.exists() && newData.child('assignedTo').val() === data.child('assignedTo').val() && newData.child('clientId').val() === data.child('clientId').val() && newData.child('engagementId').val() === data.child('engagementId').val() && newData.child('createdBy').val() === data.child('createdBy').val() && newData.child('title').val() === data.child('title').val() && newData.child('area').val() === data.child('area').val() && newData.child('reviewer').val() === data.child('reviewer').val() && newData.child('dueDate').val() === data.child('dueDate').val() && newData.child('priority').val() === data.child('priority').val() && newData.child('assignedName').val() === data.child('assignedName').val())"
+        ".read": "auth != null && root.child('users').child(auth.uid).child('active').val() === true && (root.child('users').child(auth.uid).child('role').val() in ['Admin', 'Manager'] || root.child('users').child(auth.uid).child('clientAccess').child(data.child('clientId').val()).val() === true)",
+        ".write": "auth != null && root.child('users').child(auth.uid).child('active').val() === true && (auth.uid === 'REPLACE_WITH_ADMIN_UID' || root.child('users').child(auth.uid).child('role').val() in ['Admin', 'Manager'] || root.child('users').child(auth.uid).child('role').val() in ['Senior', 'Auditor'] && data.exists() && data.child('assignedTo').val() === auth.uid && root.child('users').child(auth.uid).child('clientAccess').child(data.child('clientId').val()).val() === true)",
+        ".validate": "newData.hasChildren(['clientId', 'engagementId', 'title', 'status', 'assignedTo', 'createdBy']) && root.child('clients').child(newData.child('clientId').val()).exists() && root.child('engagements').child(newData.child('engagementId').val()).child('clientId').val() === newData.child('clientId').val() && newData.child('status').val() in ['Pending', 'In Progress', 'Under Review', 'Completed', 'On Hold'] && (root.child('users').child(auth.uid).child('role').val() in ['Admin', 'Manager'] || auth.uid === 'REPLACE_WITH_ADMIN_UID' || root.child('users').child(auth.uid).child('role').val() in ['Senior', 'Auditor'] && data.exists() && root.child('users').child(auth.uid).child('clientAccess').child(data.child('clientId').val()).val() === true && newData.child('assignedTo').val() === data.child('assignedTo').val() && newData.child('clientId').val() === data.child('clientId').val() && newData.child('engagementId').val() === data.child('engagementId').val() && newData.child('createdBy').val() === data.child('createdBy').val() && newData.child('title').val() === data.child('title').val() && newData.child('area').val() === data.child('area').val() && newData.child('reviewer').val() === data.child('reviewer').val() && newData.child('dueDate').val() === data.child('dueDate').val() && newData.child('priority').val() === data.child('priority').val() && newData.child('assignedName').val() === data.child('assignedName').val())"
       }
     }
   }

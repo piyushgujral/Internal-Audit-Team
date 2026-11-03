@@ -19,7 +19,7 @@ AuditFlow is a lightweight internal audit workspace built with static HTML/CSS/J
 5. Create the first administrator account by signing into the app once with the Google account that will own AuditFlow. In Authentication → Users, copy that user's UID.
 6. Open `database.rules.json` and replace every `REPLACE_WITH_ADMIN_UID` with that exact UID. This UID bootstrap lets the first admin be provisioned without a server or Cloud Function.
 7. In Realtime Database → Rules, paste the completed `database.rules.json` and publish the rules. Until this is done, do not use the app with real data.
-8. In Realtime Database → Data, create `/users/<ADMIN_UID>` with this initial profile (replace the UID and email):
+8. In Realtime Database → Data, create `/users/<ADMIN_UID>` with this initial profile (replace the UID and email), then reload the app:
 
    ```json
    {
@@ -61,8 +61,7 @@ Do not run `firebase init functions`, enable billing, or deploy any paid product
 - **Senior / Auditor:** work on assigned tasks and update their status.
 - **Read-only:** view workspace records without write actions.
 - A first-time Google user can create only a pending, inactive profile. They cannot assign their own role or activate their account.
-- Rules enforce active-user access, manager/admin writes to master data, task assignment and update permissions, valid record relationships, status values, and profile role validation.
-- Active users can read the clients, engagements, and tasks collection in this implementation. Client assignment controls the records shown in the UI; Realtime Database's collection reads cannot filter records by a per-user map without a different indexed data model or server-side code. Do not treat the UI filter as a confidentiality boundary for client records.
+- Rules enforce active-user access, manager/admin access to the full registers, client-scoped reads for other employees, manager/admin writes to master data, assigned-task updates, valid record relationships, status values, and profile role validation. Client-scoped reads use Realtime Database queries that must match the user's `clientAccess` map; the rules are not UI-only filters.
 
 ## Data model
 

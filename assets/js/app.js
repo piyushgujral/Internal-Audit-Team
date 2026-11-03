@@ -1,13 +1,13 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
-import { getDatabase, ref, get, set, update, push, onValue, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
+import { getDatabase, ref, get, set, update, push, onValue, query, orderByChild, equalTo, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
 import { firebaseConfig } from "./config.js";
 
 const app = initializeApp(firebaseConfig), auth = getAuth(app), db = getDatabase(app);
 const provider = new GoogleAuthProvider(); provider.setCustomParameters({ prompt: "select_account" });
 const $ = id => document.getElementById(id), esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
 const today = new Date().toISOString().slice(0, 10), roles = ["pending", "Admin", "Manager", "Senior", "Auditor", "Read-only"];
-let user = null, profile = null, users = {}, clients = {}, engagements = {}, tasks = {}, stops = [], pendingMessage = "";
+let user = null, profile = null, users = {}, clients = {}, engagements = {}, tasks = {}, stops = [], scopedStops = [], pendingMessage = "";
 const values = obj => Object.entries(obj || {}).map(([id, value]) => ({ id, ...value }));
 const isAdmin = () => profile?.role === "Admin", canManage = () => isAdmin() || profile?.role === "Manager";
 const notify = (message, error = false) => { const box = $("toast"); box.textContent = message; box.className = `toast ${error ? "error" : ""}`; box.classList.add("show"); setTimeout(() => box.classList.remove("show"), 3800); };
@@ -15,12 +15,21 @@ const modal = (name, open) => $(`${name}Modal`).classList.toggle("show", open);
 
 function showLogin(message = "") { $("loginView").classList.remove("hidden"); $("app").classList.add("hidden"); $("loginMessage").textContent = message; }
 function showApp() { $("loginView").classList.add("hidden"); $("app").classList.remove("hidden"); $("welcome").textContent = `${profile.displayName || user.displayName || user.email} · ${profile.role}`; document.querySelectorAll("[data-admin]").forEach(el => el.classList.toggle("hidden", !isAdmin())); document.querySelectorAll("[data-manager]").forEach(el => el.classList.toggle("hidden", !canManage())); }
-function active(uid) { return users[uid]?.active === true; }
-function canSeeClient(clientId) { return isAdmin() || profile?.role === "Manager" || users[user.uid]?.clientAccess?.[clientId] === true; }
 function listen(path, callback) { const r = ref(db, path); stops.push(onValue(r, snap => { callback(snap.val() || {}); renderAll(); }, error => notify(error.message, true))); }
+function loadMemberScope(access) {
+  scopedStops.forEach(stop => stop()); scopedStops = []; clients = {}; engagements = {}; tasks = {};
+  const engagementRows = {}, taskRows = {};
+  const publish = () => { engagements = Object.assign({}, ...Object.values(engagementRows)); tasks = Object.assign({}, ...Object.values(taskRows)); renderAll(); };
+  for (const clientId of Object.keys(access || {}).filter(id => access[id] === true)) {
+    scopedStops.push(onValue(ref(db, `clients/${clientId}`), snap => { if (snap.exists()) clients[clientId] = snap.val(); else delete clients[clientId]; renderAll(); }, error => notify(error.message, true)));
+    scopedStops.push(onValue(query(ref(db, "engagements"), orderByChild("clientId"), equalTo(clientId)), snap => { engagementRows[clientId] = snap.val() || {}; publish(); }, error => notify(error.message, true)));
+    scopedStops.push(onValue(query(ref(db, "tasks"), orderByChild("clientId"), equalTo(clientId)), snap => { taskRows[clientId] = snap.val() || {}; publish(); }, error => notify(error.message, true)));
+  }
+  renderAll();
+}
 
 onAuthStateChanged(auth, async signedIn => {
-  stops.forEach(stop => stop()); stops = []; user = signedIn; profile = null;
+  [...stops, ...scopedStops].forEach(stop => stop()); stops = []; scopedStops = []; users = {}; clients = {}; engagements = {}; tasks = {}; user = signedIn; profile = null;
   if (!user) { showLogin(pendingMessage); pendingMessage = ""; return; }
   try {
     const pRef = ref(db, `users/${user.uid}`), snap = await get(pRef);
@@ -28,10 +37,15 @@ onAuthStateChanged(auth, async signedIn => {
     profile = snap.val();
     if (!profile.active || profile.role === "pending") { pendingMessage="Your account is awaiting administrator approval."; await signOut(auth); return; }
     showApp();
-    if (canManage()) listen("users", data => { users = data; }); else { users[user.uid] = profile; listen(`users/${user.uid}/clientAccess`, data => { users[user.uid].clientAccess = data; }); }
-    listen("clients", data => { clients = Object.fromEntries(Object.entries(data).filter(([id]) => canSeeClient(id))); });
-    listen("engagements", data => { engagements = Object.fromEntries(Object.entries(data).filter(([, row]) => canSeeClient(row.clientId))); });
-    listen("tasks", data => { tasks = Object.fromEntries(Object.entries(data).filter(([, row]) => canSeeClient(row.clientId) && (isAdmin() || profile.role === "Manager" || row.assignedTo === user.uid || row.reviewer === user.uid))); });
+    if (canManage()) {
+      listen("users", data => { users = data; });
+      listen("clients", data => { clients = data; });
+      listen("engagements", data => { engagements = data; });
+      listen("tasks", data => { tasks = data; });
+    } else {
+      users[user.uid] = profile;
+      listen(`users/${user.uid}/clientAccess`, access => { users[user.uid].clientAccess = access; loadMemberScope(access); });
+    }
   } catch (error) { notify(`Unable to open workspace: ${error.message}`, true); showLogin("Firebase could not load your profile. Check setup and database rules."); }
 });
 
