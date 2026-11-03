@@ -62,7 +62,7 @@ If an employee signs in before their email is authorised, they see a contact-adm
 /engagements/{engagementId}
   clientId, name, financialYear, status, leadId, createdBy, createdAt
 /tasks/{taskId}
-  clientId, engagementId, title, area, assignedTo, reviewer, dueDate,
+  clientId, engagementId, title, area, assignedTo, reviewer, reviewerName, dueDate,
   priority, status, progress, createdBy, createdAt, updatedAt
 ```
 
