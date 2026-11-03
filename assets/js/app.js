@@ -91,16 +91,16 @@ $("taskSearch").addEventListener("input",renderTasks);
 $("filterClient").addEventListener("change",renderTasks);
 $("filterStatus").addEventListener("change",renderTasks);
 $("clientForm").addEventListener("submit",async e=>{
- e.preventDefault();const d=Object.fromEntries(new FormData(e.target));const {data,error}=await supabase.from("clients").insert({name:d.name.trim(),industry:d.industry||null,contact_name:d.contact_name||null}).select().single();
- if(error){alert(error.message);return;}if(d.engagement_name?.trim()){const {error:ee}=await supabase.from("engagements").insert({client_id:data.id,name:d.engagement_name.trim(),financial_year:"2026-27",status:"planning"});if(ee)alert("Client saved; engagement could not be created: "+ee.message);}
+ e.preventDefault();const d=Object.fromEntries(new FormData(e.target));const {data,error}=await supabase.from("clients").insert({name:d.name.trim(),industry:d.industry||null,contact_name:d.contact_name||null,created_by:currentUser.id}).select().single();
+ if(error){alert(error.message);return;}if(d.engagement_name?.trim()){const {error:ee}=await supabase.from("engagements").insert({client_id:data.id,name:d.engagement_name.trim(),financial_year:"2026-27",status:"planning",created_by:currentUser.id});if(ee)alert("Client saved; engagement could not be created: "+ee.message);}
  e.target.reset();modal("clientModal",false);await refreshData();
 });
 $("taskForm").addEventListener("submit",async e=>{
  e.preventDefault();const d=Object.fromEntries(new FormData(e.target));
  const engagement=engagements.find(x=>x.client_id===d.client&&x.name===d.engagement);
  let engagementId=engagement?.id;
- if(!engagementId){const {data,error}=await supabase.from("engagements").insert({client_id:d.client,name:d.engagement,financial_year:"2026-27",status:"fieldwork"}).select().single();if(error){alert(error.message);return;}engagementId=data.id;}
- const {error}=await supabase.from("tasks").insert({client_id:d.client,engagement_id:engagementId,title:d.title,area:d.area,subtask:d.subtask||null,assignee_name:d.assignee,reviewer_name:d.reviewer||null,priority:d.priority.toLowerCase(),due_date:d.due_date,start_date:d.start_date||null,budgeted_hours:Number(d.budgeted_hours||0),description:d.description||null,status:"pending",progress:0});
+ if(!engagementId){const {data,error}=await supabase.from("engagements").insert({client_id:d.client,name:d.engagement,financial_year:"2026-27",status:"fieldwork",created_by:currentUser.id}).select().single();if(error){alert(error.message);return;}engagementId=data.id;}
+ const {error}=await supabase.from("tasks").insert({client_id:d.client,engagement_id:engagementId,title:d.title,area:d.area,subtask:d.subtask||null,assignee_name:d.assignee,reviewer_name:d.reviewer||null,priority:d.priority.toLowerCase(),due_date:d.due_date,start_date:d.start_date||null,budgeted_hours:Number(d.budgeted_hours||0),description:d.description||null,status:"pending",progress:0,created_by:currentUser.id});
  if(error){alert(error.message);return;}e.target.reset();modal("taskModal",false);await refreshData();
 });
 $("exportCsv").onclick=()=>{
