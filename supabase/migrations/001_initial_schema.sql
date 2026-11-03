@@ -51,6 +51,8 @@ create table public.engagements (
  updated_at timestamptz not null default now()
 );
 
+alter table public.engagements add constraint engagements_id_client_id_key unique(id,client_id);
+
 create table public.tasks (
  id uuid primary key default gen_random_uuid(),
  client_id uuid not null references public.clients(id) on delete cascade,
@@ -163,8 +165,5 @@ create policy "tasks manager or assignee update" on public.tasks for update
  with check(public.can_access_client(client_id));
 create policy "tasks manager delete" on public.tasks for delete
  using(public.can_manage_client(client_id));
-
--- Composite FK requires a unique key on the referenced pair.
-alter table public.engagements add constraint engagements_id_client_id_key unique(id,client_id);
 
 -- NOTE: Admin provisioning and client membership grants should be performed only by a trusted admin.
