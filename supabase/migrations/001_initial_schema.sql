@@ -78,7 +78,6 @@ create table public.tasks (
  updated_at timestamptz not null default now(),
  constraint task_engagement_client_match foreign key (engagement_id,client_id) references public.engagements(id,client_id)
 );
-create unique index engagements_id_client_id_uq on public.engagements(id,client_id);
 create index tasks_client_due_idx on public.tasks(client_id,due_date);
 create index tasks_assignee_idx on public.tasks(assignee_id,status);
 create index memberships_user_idx on public.client_memberships(user_id,client_id);
