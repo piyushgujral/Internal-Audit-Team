@@ -1,0 +1,40 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "users": {
+      ".read": "auth != null && (auth.uid === 'REPLACE_WITH_ADMIN_UID' || root.child('users').child(auth.uid).child('role').val() in ['Admin', 'Manager'] && root.child('users').child(auth.uid).child('active').val() === true)",
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || auth.uid === 'REPLACE_WITH_ADMIN_UID' || root.child('users').child(auth.uid).child('role').val() === 'Admin' && root.child('users').child(auth.uid).child('active').val() === true)",
+        ".write": "auth != null && (auth.uid === 'REPLACE_WITH_ADMIN_UID' || root.child('users').child(auth.uid).child('role').val() === 'Admin' && root.child('users').child(auth.uid).child('active').val() === true || auth.uid === $uid && !data.exists() && newData.child('role').val() === 'pending' && newData.child('active').val() === false)",
+        ".validate": "newData.hasChildren(['uid', 'email', 'role', 'active']) && (newData.child('role').val() !== 'pending' || newData.child('active').val() === false)",
+        "uid": { ".validate": "newData.val() === $uid" },
+        "role": { ".validate": "newData.val() in ['Admin', 'Manager', 'Senior', 'Auditor', 'Read-only', 'pending']" },
+        "active": { ".validate": "newData.isBoolean()" }
+      }
+    },
+    "clients": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('active').val() === true",
+      "$clientId": {
+        ".write": "auth != null && (auth.uid === 'REPLACE_WITH_ADMIN_UID' || root.child('users').child(auth.uid).child('role').val() in ['Admin', 'Manager'] && root.child('users').child(auth.uid).child('active').val() === true)",
+        ".validate": "newData.hasChildren(['name', 'status', 'createdBy'])",
+        "name": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 160" },
+        "createdBy": { ".validate": "newData.isString()" }
+      }
+    },
+    "engagements": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('active').val() === true",
+      "$engagementId": {
+        ".write": "auth != null && (auth.uid === 'REPLACE_WITH_ADMIN_UID' || root.child('users').child(auth.uid).child('role').val() in ['Admin', 'Manager'] && root.child('users').child(auth.uid).child('active').val() === true)",
+        ".validate": "newData.hasChildren(['clientId', 'name', 'status', 'createdBy']) && root.child('clients').child(newData.child('clientId').val()).exists()"
+      }
+    },
+    "tasks": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('active').val() === true",
+      "$taskId": {
+        ".write": "auth != null && root.child('users').child(auth.uid).child('active').val() === true && (auth.uid === 'REPLACE_WITH_ADMIN_UID' || root.child('users').child(auth.uid).child('role').val() in ['Admin', 'Manager'] || root.child('users').child(auth.uid).child('role').val() in ['Senior', 'Auditor'] && data.exists() && data.child('assignedTo').val() === auth.uid)",
+        ".validate": "newData.hasChildren(['clientId', 'engagementId', 'title', 'status', 'assignedTo', 'createdBy']) && root.child('clients').child(newData.child('clientId').val()).exists() && root.child('engagements').child(newData.child('engagementId').val()).child('clientId').val() === newData.child('clientId').val() && newData.child('status').val() in ['Pending', 'In Progress', 'Under Review', 'Completed', 'On Hold'] && (root.child('users').child(auth.uid).child('role').val() in ['Admin', 'Manager'] || auth.uid === 'REPLACE_WITH_ADMIN_UID' || root.child('users').child(auth.uid).child('role').val() in ['Senior', 'Auditor'] && data.exists() && newData.child('assignedTo').val() === data.child('assignedTo').val() && newData.child('clientId').val() === data.child('clientId').val() && newData.child('engagementId').val() === data.child('engagementId').val() && newData.child('createdBy').val() === data.child('createdBy').val() && newData.child('title').val() === data.child('title').val() && newData.child('area').val() === data.child('area').val() && newData.child('reviewer').val() === data.child('reviewer').val() && newData.child('dueDate').val() === data.child('dueDate').val() && newData.child('priority').val() === data.child('priority').val() && newData.child('assignedName').val() === data.child('assignedName').val())"
+      }
+    }
+  }
+}
