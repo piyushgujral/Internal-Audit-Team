@@ -53,7 +53,7 @@ onAuthStateChanged(auth, async signedIn => {
       users[user.uid] = profile;
       listen(`users/${user.uid}/clientAccess`, access => { users[user.uid].clientAccess = access; loadMemberScope(access); });
     }
-  } catch (error) { showLogin(`Firebase could not load your profile (${error.code || "connection or permission error"}). Check the database URL and published security rules.`); }
+  } catch (error) { const detail = error?.code || error?.message || "connection or permission error"; showLogin(`Firebase could not load your profile (${detail}). Check the database URL and published security rules.`); }
 });
 
 $("googleSignIn").addEventListener("click", async () => { try { await signInWithPopup(auth, provider); } catch (e) { showLogin(e.message); } });
